@@ -6,16 +6,13 @@
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
           "fill" : {
-            "solid" : "srgb:0.00000,0.00000,0.00000,1.00000"
+            "solid" : "extended-gray:1.00000,1.00000"
           },
-          "glass" : true,
-          "hidden" : false,
-          "image-name" : "1124602.png",
-          "name" : "1124602",
+          "image-name" : "clock.svg",
+          "name" : "clock",
           "position" : {
-            "scale" : 1.4,
+            "scale" : 1.28,
             "translation-in-points" : [
               0,
               0
