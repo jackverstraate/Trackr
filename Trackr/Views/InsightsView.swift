@@ -9,26 +9,51 @@ import SwiftUI
 import SwiftData
 import Charts
 
-/// Charts and summary stats: time per day, streak, goal, and per-activity breakdown.
+/// Charts and summary stats: time per period, streak, goal, and per-activity breakdown.
 struct InsightsView: View {
     @AppStorage(SettingsKey.dailyGoalMinutes) private var goalMinutes = 0
     @Query(sort: \StudySession.startDate, order: .reverse) private var allSessions: [StudySession]
 
     @State private var range: Range = .week
+    @State private var showingSettings = false
 
     enum Range: String, CaseIterable, Identifiable {
         case week = "Week"
         case month = "Month"
+        case year = "Year"
+        case all = "All"
         var id: String { rawValue }
-        var days: Int { self == .week ? 7 : 30 }
+
+        /// Longer label used in the total card ("All" → "All Time").
+        var displayName: String { self == .all ? "All Time" : rawValue }
+
+        /// Whether the chart buckets by month (Year, All Time) rather than by day.
+        var isMonthly: Bool { self == .year || self == .all }
     }
 
+    /// Sessions that fall inside the selected range.
     private var rangeSessions: [StudySession] {
-        StudyStats.sessions(allSessions, inLast: range.days)
+        switch range {
+        case .week: StudyStats.sessions(allSessions, inLast: 7)
+        case .month: StudyStats.sessions(allSessions, inLast: 30)
+        case .year: StudyStats.sessions(allSessions, inLastMonths: 12)
+        case .all: allSessions
+        }
     }
 
-    private var dailyTotals: [DailyActivityTotal] {
-        StudyStats.perDay(allSessions, days: range.days)
+    /// Per-bucket, per-activity totals used by the chart (daily or monthly buckets).
+    private var chartTotals: [DailyActivityTotal] {
+        switch range {
+        case .week: StudyStats.perDay(allSessions, days: 7)
+        case .month: StudyStats.perDay(allSessions, days: 30)
+        case .year: StudyStats.perMonth(allSessions, months: 12)
+        case .all: StudyStats.perMonth(allSessions, months: StudyStats.monthSpan(allSessions))
+        }
+    }
+
+    /// Number of buckets currently plotted (used to space the x-axis for All Time).
+    private var bucketCount: Int {
+        chartTotals.count / max(ActivityKind.allCases.count, 1)
     }
 
     private var activityTotals: [ActivityTotal] {
@@ -61,7 +86,7 @@ struct InsightsView: View {
                             tint: .orange
                         )
                         statCard(
-                            title: range.rawValue,
+                            title: range.displayName,
                             value: DurationFormat.short(rangeTotal),
                             unit: "total",
                             icon: "clock.fill",
@@ -72,7 +97,7 @@ struct InsightsView: View {
                     .listRowBackground(Color.clear)
                 }
 
-                Section("Time per Day") {
+                Section(range.isMonthly ? "Time per Month" : "Time per Day") {
                     chart
                         .frame(height: 220)
                         .padding(.vertical, 8)
@@ -99,13 +124,21 @@ struct InsightsView: View {
                 }
             }
             .navigationTitle("Insights")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Settings", systemImage: "gearshape") { showingSettings = true }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
         }
     }
 
     private var chart: some View {
-        Chart(dailyTotals) { item in
+        Chart(chartTotals) { item in
             BarMark(
-                x: .value("Day", item.day, unit: .day),
+                x: .value("Period", item.day, unit: range.isMonthly ? .month : .day),
                 y: .value("Minutes", item.total / 60)
             )
             .foregroundStyle(by: .value("Activity", item.kind.displayName))
@@ -116,12 +149,33 @@ struct InsightsView: View {
             ActivityKind.written.displayName: ActivityKind.written.tint,
         ])
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: range == .week ? 1 : 5)) { _ in
+            AxisMarks(values: .stride(by: xAxisUnit, count: xAxisStride)) { _ in
                 AxisGridLine()
-                AxisValueLabel(format: .dateTime.month(.defaultDigits).day())
+                AxisValueLabel(format: xAxisFormat)
             }
         }
         .chartLegend(position: .bottom)
+    }
+
+    private var xAxisUnit: Calendar.Component {
+        range.isMonthly ? .month : .day
+    }
+
+    private var xAxisStride: Int {
+        switch range {
+        case .week: 1
+        case .month: 5
+        case .year: 2
+        case .all: max(bucketCount / 6, 1)
+        }
+    }
+
+    private var xAxisFormat: Date.FormatStyle {
+        switch range {
+        case .week, .month: .dateTime.month(.defaultDigits).day()
+        case .year: .dateTime.month(.abbreviated)
+        case .all: .dateTime.month(.narrow).year(.twoDigits)
+        }
     }
 
     private func statCard(title: String, value: String, unit: String, icon: String, tint: Color) -> some View {

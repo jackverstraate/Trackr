@@ -75,6 +75,58 @@ enum StudyStats {
         return sessions.filter { $0.startDate >= start }
     }
 
+    /// First moment of the month containing `date`.
+    static func startOfMonth(_ date: Date, calendar: Calendar = .current) -> Date {
+        calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? calendar.startOfDay(for: date)
+    }
+
+    /// Per-month, per-activity totals for the last `months` months ending in the current month.
+    /// Each bucket's `day` is the first of that month, so charts can plot by `.month`.
+    static func perMonth(
+        _ sessions: [StudySession],
+        months: Int,
+        endingOn endDay: Date = .now,
+        calendar: Calendar = .current
+    ) -> [DailyActivityTotal] {
+        guard months > 0 else { return [] }
+        let currentMonth = startOfMonth(endDay, calendar: calendar)
+        var result: [DailyActivityTotal] = []
+        for offset in stride(from: months - 1, through: 0, by: -1) {
+            guard let monthStart = calendar.date(byAdding: .month, value: -offset, to: currentMonth) else { continue }
+            let monthSessions = sessions.filter { calendar.isDate($0.startDate, equalTo: monthStart, toGranularity: .month) }
+            for kind in ActivityKind.allCases {
+                let monthTotal = total(monthSessions.filter { $0.kind == kind })
+                result.append(DailyActivityTotal(day: monthStart, kind: kind, total: monthTotal))
+            }
+        }
+        return result
+    }
+
+    /// Sessions whose start date falls within the last `months` calendar months.
+    static func sessions(
+        _ sessions: [StudySession],
+        inLastMonths months: Int,
+        endingOn endDay: Date = .now,
+        calendar: Calendar = .current
+    ) -> [StudySession] {
+        let currentMonth = startOfMonth(endDay, calendar: calendar)
+        guard let start = calendar.date(byAdding: .month, value: -(months - 1), to: currentMonth) else { return sessions }
+        return sessions.filter { $0.startDate >= start }
+    }
+
+    /// Number of calendar months from the earliest session's month through the current month (minimum 1).
+    static func monthSpan(
+        _ sessions: [StudySession],
+        asOf now: Date = .now,
+        calendar: Calendar = .current
+    ) -> Int {
+        guard let earliest = sessions.map(\.startDate).min() else { return 1 }
+        let from = startOfMonth(earliest, calendar: calendar)
+        let to = startOfMonth(now, calendar: calendar)
+        let months = calendar.dateComponents([.month], from: from, to: to).month ?? 0
+        return max(months + 1, 1)
+    }
+
     /// Number of consecutive days (ending today) that have at least one session.
     static func currentStreak(
         _ sessions: [StudySession],
