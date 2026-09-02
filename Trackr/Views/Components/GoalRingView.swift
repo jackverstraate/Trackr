@@ -42,13 +42,9 @@ struct GoalRingView: View {
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .monospacedDigit()
                 if goalMinutes > 0 {
-                    Label(
-                        isComplete ? "Goal reached" : "of \(DurationFormat.short(goalSeconds))",
-                        systemImage: isComplete ? "checkmark.circle.fill" : "target"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(isComplete ? Color.green : .secondary)
-                    .labelStyle(.titleAndIcon)
+                    Text(isComplete ? "Goal reached" : "of \(DurationFormat.short(goalSeconds))")
+                        .font(.caption)
+                        .foregroundStyle(isComplete ? Color.green : .secondary)
                 } else {
                     Text("today")
                         .font(.caption)

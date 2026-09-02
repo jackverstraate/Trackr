@@ -64,7 +64,11 @@ struct SessionEditorView: View {
 
                 Section("Duration") {
                     Stepper("\(hours) h", value: $hours, in: 0...23)
-                    Stepper("\(minutes) min", value: $minutes, in: 0...59, step: 5)
+                    Stepper("\(minutes) min") {
+                        adjustDuration(byMinutes: 5)
+                    } onDecrement: {
+                        adjustDuration(byMinutes: -5)
+                    }
                 }
 
                 Section("Note") {
@@ -101,6 +105,15 @@ struct SessionEditorView: View {
                 ? lastLanguage
                 : (languageList.languages.first ?? "")
         }
+    }
+
+    /// Adjusts the minutes stepper so it rolls over into hours (55 min +5 → 1 h 0 min)
+    /// and borrows from hours when going below zero, clamped to 0…23:59.
+    private func adjustDuration(byMinutes delta: Int) {
+        let maxTotal = 23 * 60 + 59
+        let total = min(max(hours * 60 + minutes + delta, 0), maxTotal)
+        hours = total / 60
+        minutes = total % 60
     }
 
     private func addLanguage() {
