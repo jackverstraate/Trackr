@@ -10,9 +10,12 @@ import SwiftData
 
 @main
 struct TrackrApp: App {
+    /// The live stopwatch, shared across tabs so a running timer survives navigation.
+    @State private var timer = StudyTimer()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            StudySession.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,6 +29,7 @@ struct TrackrApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(timer)
         }
         .modelContainer(sharedModelContainer)
     }

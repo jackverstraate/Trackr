@@ -111,5 +111,5 @@ struct HistoryView: View {
 
 #Preview {
     HistoryView()
-        .modelContainer(for: StudySession.self, inMemory: true)
+        .modelContainer(SampleData.container)
 }

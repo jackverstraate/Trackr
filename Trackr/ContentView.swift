@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 /// Root tab bar. The system tab bar adopts Liquid Glass automatically on iOS 26.
 struct ContentView: View {

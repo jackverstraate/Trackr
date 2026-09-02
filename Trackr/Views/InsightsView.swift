@@ -167,5 +167,5 @@ struct InsightsView: View {
 
 #Preview {
     InsightsView()
-        .modelContainer(for: StudySession.self, inMemory: true)
+        .modelContainer(SampleData.container)
 }
