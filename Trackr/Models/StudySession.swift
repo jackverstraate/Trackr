@@ -20,6 +20,8 @@ final class StudySession {
     var duration: TimeInterval
     /// Optional material name or free-form note, e.g. "Genki 1 – Ch. 3".
     var note: String
+    /// Raw value of `ImmersionStyle` for immersion sessions; empty otherwise.
+    var immersionStyleRaw: String
 
     init(
         id: UUID = UUID(),
@@ -27,7 +29,8 @@ final class StudySession {
         language: String,
         startDate: Date,
         duration: TimeInterval,
-        note: String = ""
+        note: String = "",
+        immersionStyle: ImmersionStyle? = nil
     ) {
         self.id = id
         self.kindRaw = kind.rawValue
@@ -35,11 +38,18 @@ final class StudySession {
         self.startDate = startDate
         self.duration = duration
         self.note = note
+        self.immersionStyleRaw = kind == .immersion ? (immersionStyle ?? .active).rawValue : ""
     }
 
     /// Typed accessor for the stored activity kind.
     var kind: ActivityKind {
         get { ActivityKind(rawValue: kindRaw) ?? .immersion }
         set { kindRaw = newValue.rawValue }
+    }
+
+    /// The immersion sub-type, or `nil` for non-immersion sessions.
+    var immersionStyle: ImmersionStyle? {
+        guard kind == .immersion else { return nil }
+        return ImmersionStyle(rawValue: immersionStyleRaw) ?? .active
     }
 }

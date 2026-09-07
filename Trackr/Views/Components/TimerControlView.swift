@@ -29,6 +29,16 @@ struct TimerControlView: View {
             .pickerStyle(.segmented)
             .disabled(timer.isActive)
 
+            if timer.selectedKind == .immersion {
+                Picker("Immersion Style", selection: $timer.selectedImmersionStyle) {
+                    ForEach(ImmersionStyle.allCases) { style in
+                        Text(style.displayName).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(timer.isActive)
+            }
+
             Menu {
                 ForEach(languages, id: \.self) { language in
                     Button(language) { timer.selectedLanguage = language }

@@ -18,7 +18,7 @@ struct SessionRow: View {
             ActivityBadge(kind: session.kind)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.kind.displayName)
+                Text(title)
                     .font(.headline)
                 Text(secondaryLine)
                     .font(.subheadline)
@@ -34,6 +34,14 @@ struct SessionRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+    }
+
+    /// Immersion rows show the sub-type, e.g. "Active Immersion".
+    private var title: String {
+        if let style = session.immersionStyle {
+            return "\(style.displayName) \(session.kind.displayName)"
+        }
+        return session.kind.displayName
     }
 
     private var secondaryLine: String {

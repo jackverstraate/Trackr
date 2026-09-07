@@ -51,3 +51,79 @@ enum ActivityKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 }
+
+/// A sub-type of immersion, tracked separately within the Immersion activity.
+enum ImmersionStyle: String, Codable, CaseIterable, Identifiable {
+    case active
+    case passive
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .active: "Active"
+        case .passive: "Passive"
+        }
+    }
+}
+
+/// A leaf category used for insights, where immersion splits into its two styles.
+/// Everything else maps one-to-one from `ActivityKind`.
+enum StudyCategory: String, CaseIterable, Identifiable {
+    case activeImmersion
+    case passiveImmersion
+    case flashcards
+    case written
+
+    var id: String { rawValue }
+
+    /// Short label used in the chart legend.
+    var shortName: String {
+        switch self {
+        case .activeImmersion: "Active"
+        case .passiveImmersion: "Passive"
+        case .flashcards: "Flashcards"
+        case .written: "Written"
+        }
+    }
+
+    /// Full label used in the breakdown rows.
+    var displayName: String {
+        switch self {
+        case .activeImmersion: "Active Immersion"
+        case .passiveImmersion: "Passive Immersion"
+        case .flashcards: "Flashcards"
+        case .written: "Written"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .activeImmersion: "headphones"
+        case .passiveImmersion: "headphones"
+        case .flashcards: "rectangle.on.rectangle.angled"
+        case .written: "book"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .activeImmersion: .blue
+        case .passiveImmersion: .teal
+        case .flashcards: .orange
+        case .written: .green
+        }
+    }
+
+    /// Maps a session to its leaf category. Legacy immersion sessions without a
+    /// stored style are treated as Active.
+    static func of(_ session: StudySession) -> StudyCategory {
+        switch session.kind {
+        case .immersion:
+            let style = ImmersionStyle(rawValue: session.immersionStyleRaw) ?? .active
+            return style == .active ? .activeImmersion : .passiveImmersion
+        case .flashcards: return .flashcards
+        case .written: return .written
+        }
+    }
+}

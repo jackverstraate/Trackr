@@ -17,6 +17,8 @@ struct SessionBackup: Codable {
     var startDate: Date
     var duration: TimeInterval
     var note: String
+    /// Immersion sub-type raw value. Optional so older backups still decode.
+    var immersionStyle: String?
 }
 
 /// The full contents of a Trackr backup file.
@@ -45,7 +47,8 @@ enum DataBackup {
                     language: $0.language,
                     startDate: $0.startDate,
                     duration: $0.duration,
-                    note: $0.note
+                    note: $0.note,
+                    immersionStyle: $0.immersionStyleRaw.isEmpty ? nil : $0.immersionStyleRaw
                 )
             }
         )

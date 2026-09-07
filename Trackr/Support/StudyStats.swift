@@ -7,18 +7,18 @@
 
 import Foundation
 
-/// One day's total study time for a single activity, used by the Insights charts.
-struct DailyActivityTotal: Identifiable {
-    var id: String { "\(day.timeIntervalSince1970)-\(kind.rawValue)" }
+/// One bucket's total study time for a single category, used by the Insights charts.
+struct DailyCategoryTotal: Identifiable {
+    var id: String { "\(day.timeIntervalSince1970)-\(category.rawValue)" }
     let day: Date
-    let kind: ActivityKind
+    let category: StudyCategory
     let total: TimeInterval
 }
 
-/// Aggregate time for a single activity across a range, used for the breakdown.
-struct ActivityTotal: Identifiable {
-    var id: String { kind.rawValue }
-    let kind: ActivityKind
+/// Aggregate time for a single category across a range, used for the breakdown.
+struct CategoryTotal: Identifiable {
+    var id: String { category.rawValue }
+    let category: StudyCategory
     let total: TimeInterval
 }
 
@@ -35,29 +35,29 @@ enum StudyStats {
         total(sessions.filter { calendar.isDate($0.startDate, inSameDayAs: day) })
     }
 
-    /// Totals per activity kind, always covering all three kinds (zero-filled).
-    static func byActivity(_ sessions: [StudySession]) -> [ActivityTotal] {
-        ActivityKind.allCases.map { kind in
-            ActivityTotal(kind: kind, total: total(sessions.filter { $0.kind == kind }))
+    /// Totals per category, always covering all categories (zero-filled).
+    static func byCategory(_ sessions: [StudySession]) -> [CategoryTotal] {
+        StudyCategory.allCases.map { category in
+            CategoryTotal(category: category, total: total(sessions.filter { StudyCategory.of($0) == category }))
         }
     }
 
-    /// Per-day, per-activity totals for the last `days` days ending on `endDay`.
+    /// Per-day, per-category totals for the last `days` days ending on `endDay`.
     /// Every day in the window is represented so charts render a continuous axis.
     static func perDay(
         _ sessions: [StudySession],
         days: Int,
         endingOn endDay: Date = .now,
         calendar: Calendar = .current
-    ) -> [DailyActivityTotal] {
+    ) -> [DailyCategoryTotal] {
         let end = calendar.startOfDay(for: endDay)
-        var result: [DailyActivityTotal] = []
+        var result: [DailyCategoryTotal] = []
         for offset in stride(from: days - 1, through: 0, by: -1) {
             guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { continue }
             let daySessions = sessions.filter { calendar.isDate($0.startDate, inSameDayAs: day) }
-            for kind in ActivityKind.allCases {
-                let dayTotal = total(daySessions.filter { $0.kind == kind })
-                result.append(DailyActivityTotal(day: day, kind: kind, total: dayTotal))
+            for category in StudyCategory.allCases {
+                let dayTotal = total(daySessions.filter { StudyCategory.of($0) == category })
+                result.append(DailyCategoryTotal(day: day, category: category, total: dayTotal))
             }
         }
         return result
@@ -87,16 +87,16 @@ enum StudyStats {
         months: Int,
         endingOn endDay: Date = .now,
         calendar: Calendar = .current
-    ) -> [DailyActivityTotal] {
+    ) -> [DailyCategoryTotal] {
         guard months > 0 else { return [] }
         let currentMonth = startOfMonth(endDay, calendar: calendar)
-        var result: [DailyActivityTotal] = []
+        var result: [DailyCategoryTotal] = []
         for offset in stride(from: months - 1, through: 0, by: -1) {
             guard let monthStart = calendar.date(byAdding: .month, value: -offset, to: currentMonth) else { continue }
             let monthSessions = sessions.filter { calendar.isDate($0.startDate, equalTo: monthStart, toGranularity: .month) }
-            for kind in ActivityKind.allCases {
-                let monthTotal = total(monthSessions.filter { $0.kind == kind })
-                result.append(DailyActivityTotal(day: monthStart, kind: kind, total: monthTotal))
+            for category in StudyCategory.allCases {
+                let monthTotal = total(monthSessions.filter { StudyCategory.of($0) == category })
+                result.append(DailyCategoryTotal(day: monthStart, category: category, total: monthTotal))
             }
         }
         return result

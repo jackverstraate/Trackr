@@ -41,8 +41,8 @@ struct InsightsView: View {
         }
     }
 
-    /// Per-bucket, per-activity totals used by the chart (daily or monthly buckets).
-    private var chartTotals: [DailyActivityTotal] {
+    /// Per-bucket, per-category totals used by the chart (daily or monthly buckets).
+    private var chartTotals: [DailyCategoryTotal] {
         switch range {
         case .week: StudyStats.perDay(allSessions, days: 7)
         case .month: StudyStats.perDay(allSessions, days: 30)
@@ -53,11 +53,11 @@ struct InsightsView: View {
 
     /// Number of buckets currently plotted (used to space the x-axis for All Time).
     private var bucketCount: Int {
-        chartTotals.count / max(ActivityKind.allCases.count, 1)
+        chartTotals.count / max(StudyCategory.allCases.count, 1)
     }
 
-    private var activityTotals: [ActivityTotal] {
-        StudyStats.byActivity(rangeSessions)
+    private var categoryTotals: [CategoryTotal] {
+        StudyStats.byCategory(rangeSessions)
     }
 
     private var rangeTotal: TimeInterval {
@@ -108,7 +108,7 @@ struct InsightsView: View {
                         Text("No sessions in this range.")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(activityTotals) { item in
+                        ForEach(categoryTotals) { item in
                             breakdownRow(item)
                         }
                     }
@@ -141,12 +141,13 @@ struct InsightsView: View {
                 x: .value("Period", item.day, unit: range.isMonthly ? .month : .day),
                 y: .value("Minutes", item.total / 60)
             )
-            .foregroundStyle(by: .value("Activity", item.kind.displayName))
+            .foregroundStyle(by: .value("Activity", item.category.shortName))
         }
         .chartForegroundStyleScale([
-            ActivityKind.immersion.displayName: ActivityKind.immersion.tint,
-            ActivityKind.flashcards.displayName: ActivityKind.flashcards.tint,
-            ActivityKind.written.displayName: ActivityKind.written.tint,
+            StudyCategory.activeImmersion.shortName: StudyCategory.activeImmersion.tint,
+            StudyCategory.passiveImmersion.shortName: StudyCategory.passiveImmersion.tint,
+            StudyCategory.flashcards.shortName: StudyCategory.flashcards.tint,
+            StudyCategory.written.shortName: StudyCategory.written.tint,
         ])
         .chartXAxis {
             AxisMarks(values: .stride(by: xAxisUnit, count: xAxisStride)) { _ in
@@ -196,12 +197,16 @@ struct InsightsView: View {
         .background(.background.secondary, in: .rect(cornerRadius: 16))
     }
 
-    private func breakdownRow(_ item: ActivityTotal) -> some View {
+    private func breakdownRow(_ item: CategoryTotal) -> some View {
         let fraction = rangeTotal > 0 ? item.total / rangeTotal : 0
         return VStack(spacing: 6) {
             HStack {
-                ActivityBadge(kind: item.kind, size: 32)
-                Text(item.kind.displayName)
+                Image(systemName: item.category.systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(item.category.tint)
+                    .frame(width: 32, height: 32)
+                    .background(item.category.tint.opacity(0.15), in: .rect(cornerRadius: 9))
+                Text(item.category.displayName)
                     .font(.subheadline.weight(.medium))
                 Spacer()
                 Text(DurationFormat.short(item.total))
@@ -209,11 +214,11 @@ struct InsightsView: View {
                     .foregroundStyle(.secondary)
                 Text("\(Int((fraction * 100).rounded()))%")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(item.kind.tint)
+                    .foregroundStyle(item.category.tint)
                     .frame(width: 44, alignment: .trailing)
             }
             ProgressView(value: fraction)
-                .tint(item.kind.tint)
+                .tint(item.category.tint)
         }
         .padding(.vertical, 2)
     }

@@ -22,6 +22,8 @@ final class StudyTimer {
 
     /// The activity being timed. Editable while the timer is stopped.
     var selectedKind: ActivityKind = .immersion
+    /// The immersion sub-type, used only when `selectedKind` is `.immersion`.
+    var selectedImmersionStyle: ImmersionStyle = .active
     /// The language being studied. Editable while the timer is stopped.
     var selectedLanguage: String = ""
 

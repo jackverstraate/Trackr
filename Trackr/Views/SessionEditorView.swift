@@ -20,6 +20,7 @@ struct SessionEditorView: View {
     let session: StudySession?
 
     @State private var kind: ActivityKind = .immersion
+    @State private var immersionStyle: ImmersionStyle = .active
     @State private var language = ""
     @State private var date = Date.now
     @State private var hours = 0
@@ -41,6 +42,15 @@ struct SessionEditorView: View {
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+
+                    if kind == .immersion {
+                        Picker("Style", selection: $immersionStyle) {
+                            ForEach(ImmersionStyle.allCases) { style in
+                                Text(style.displayName).tag(style)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
                 }
 
                 Section("Language") {
@@ -94,6 +104,7 @@ struct SessionEditorView: View {
     private func loadInitialState() {
         if let session {
             kind = session.kind
+            immersionStyle = session.immersionStyle ?? .active
             language = session.language
             date = session.startDate
             hours = Int(session.duration) / 3600
@@ -128,6 +139,7 @@ struct SessionEditorView: View {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if let session {
             session.kind = kind
+            session.immersionStyleRaw = kind == .immersion ? immersionStyle.rawValue : ""
             session.language = language
             session.startDate = date
             session.duration = totalSeconds
@@ -138,7 +150,8 @@ struct SessionEditorView: View {
                 language: language,
                 startDate: date,
                 duration: totalSeconds,
-                note: trimmedNote
+                note: trimmedNote,
+                immersionStyle: kind == .immersion ? immersionStyle : nil
             )
             modelContext.insert(newSession)
         }

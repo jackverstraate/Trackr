@@ -123,7 +123,8 @@ struct SettingsView: View {
                         language: session.language,
                         startDate: session.startDate,
                         duration: session.duration,
-                        note: session.note
+                        note: session.note,
+                        immersionStyle: session.immersionStyle.flatMap(ImmersionStyle.init(rawValue:))
                     )
                 )
                 added += 1

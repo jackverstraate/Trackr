@@ -111,7 +111,8 @@ struct TodayView: View {
             kind: timer.selectedKind,
             language: timer.selectedLanguage,
             startDate: Date.now.addingTimeInterval(-elapsed),
-            duration: elapsed
+            duration: elapsed,
+            immersionStyle: timer.selectedKind == .immersion ? timer.selectedImmersionStyle : nil
         )
         modelContext.insert(session)
         lastLanguage = timer.selectedLanguage
