@@ -12,6 +12,7 @@ import SwiftData
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(StudyTimer.self) private var timer
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage(SettingsKey.knownLanguages) private var languageList = LanguageList.seed
     @AppStorage(SettingsKey.lastLanguage) private var lastLanguage = "Japanese"
@@ -21,9 +22,12 @@ struct TodayView: View {
 
     @State private var isAddingManually = false
     @State private var editingSession: StudySession?
+    /// The day the view is showing. Refreshed on foreground and at midnight so the
+    /// list rolls over to the new day without needing a relaunch.
+    @State private var today = Calendar.current.startOfDay(for: .now)
 
     private var todaySessions: [StudySession] {
-        allSessions.filter { Calendar.current.isDateInToday($0.startDate) }
+        allSessions.filter { Calendar.current.isDate($0.startDate, inSameDayAs: today) }
     }
 
     var body: some View {
@@ -52,7 +56,22 @@ struct TodayView: View {
                 SessionEditorView(session: session)
             }
             .onAppear(perform: seedTimerLanguage)
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { refreshToday() }
+            }
+            .task {
+                // Roll over to the new day if the app is left open past midnight.
+                for await _ in NotificationCenter.default.notifications(named: .NSCalendarDayChanged) {
+                    refreshToday()
+                }
+            }
         }
+    }
+
+    /// Updates the displayed day if the calendar date has changed since last render.
+    private func refreshToday() {
+        let start = Calendar.current.startOfDay(for: .now)
+        if start != today { today = start }
     }
 
     @ViewBuilder
