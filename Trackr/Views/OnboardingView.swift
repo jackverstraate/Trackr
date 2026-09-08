@@ -6,22 +6,33 @@
 //
 
 import SwiftUI
+import SwiftData
+import UniformTypeIdentifiers
 
-/// First-launch flow where the user chooses the language they want to learn.
+/// First-launch flow where the user chooses a language, or restores from a backup.
 struct OnboardingView: View {
+    @Environment(\.modelContext) private var modelContext
+
     @AppStorage(SettingsKey.knownLanguages) private var languageList = LanguageList.seed
     @AppStorage(SettingsKey.lastLanguage) private var lastLanguage = "Japanese"
+    @AppStorage(SettingsKey.dailyGoalMinutes) private var goalMinutes = 0
     @AppStorage(SettingsKey.hasOnboarded) private var hasOnboarded = false
 
     @State private var selectedPreset: String?
     @State private var customLanguage = ""
-    @State private var isFinishing = false
+    @State private var isImporting = false
+    @State private var importError: String?
+    /// Non-nil once the user commits, driving the closing confirmation animation.
+    @State private var finish: FinishMode?
+    /// The language shown in the confirmation screen.
+    @State private var finishLanguage = ""
     @FocusState private var customFieldFocused: Bool
 
-    private let presets = [
-        "Japanese", "Korean", "Chinese", "Spanish",
-        "French", "German", "Italian", "Russian",
-    ]
+    /// How onboarding was completed, which changes the confirmation wording.
+    private enum FinishMode {
+        case selected
+        case restored
+    }
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -43,7 +54,7 @@ struct OnboardingView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(presets, id: \.self) { language in
+                            ForEach(LanguageList.presets, id: \.self) { language in
                                 presetButton(language)
                             }
                         }
@@ -60,18 +71,37 @@ struct OnboardingView: View {
                 .padding()
             }
 
-            getStartedButton
-                .padding()
+            VStack(spacing: 12) {
+                getStartedButton
+                Button {
+                    isImporting = true
+                } label: {
+                    Label("Restore from Backup", systemImage: "square.and.arrow.down")
+                        .font(.subheadline.weight(.medium))
+                }
+            }
+            .padding()
         }
         .overlay {
-            if isFinishing {
-                successOverlay
+            if let finish {
+                successOverlay(finish)
                     .transition(.opacity)
             }
         }
+        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
+            handleRestore(result)
+        }
+        .alert(
+            "Couldn't Restore",
+            isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })
+        ) {
+            Button("OK", role: .cancel) { importError = nil }
+        } message: {
+            Text(importError ?? "")
+        }
     }
 
-    private var successOverlay: some View {
+    private func successOverlay(_ mode: FinishMode) -> some View {
         ZStack {
             Rectangle()
                 .fill(.background)
@@ -81,15 +111,22 @@ struct OnboardingView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 88))
                     .foregroundStyle(.tint)
-                    .symbolEffect(.bounce, value: isFinishing)
-                Text("You're all set!")
+                    .symbolEffect(.bounce, value: finish != nil)
+                Text(mode == .selected ? "You're all set!" : "Backup restored!")
                     .font(.title2.weight(.semibold))
-                Text("Let's start tracking your \(chosenLanguage).")
+                Text(subtitle(for: mode))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .padding()
+        }
+    }
+
+    private func subtitle(for mode: FinishMode) -> String {
+        switch mode {
+        case .selected: "Let's start tracking your \(finishLanguage)."
+        case .restored: "Picked up where you left off with \(finishLanguage)."
         }
     }
 
@@ -145,14 +182,49 @@ struct OnboardingView: View {
     private func complete() {
         let language = chosenLanguage
         guard !language.isEmpty else { return }
+        setLanguage(language)
+        finishOnboarding(language: language, mode: .selected)
+    }
+
+    private func handleRestore(_ result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
+            let data = try Data(contentsOf: url)
+            let existing = (try? modelContext.fetch(FetchDescriptor<StudySession>())) ?? []
+            let outcome = try DataBackup.restore(
+                data,
+                into: modelContext,
+                existingIDs: Set(existing.map(\.id))
+            )
+
+            guard let language = outcome.language else {
+                importError = "That backup doesn't specify a language."
+                return
+            }
+            setLanguage(language)
+            if outcome.dailyGoalMinutes > 0 { goalMinutes = outcome.dailyGoalMinutes }
+            finishOnboarding(language: language, mode: .restored)
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
+    /// Persists the chosen language as the single language the app tracks.
+    private func setLanguage(_ language: String) {
         var list = LanguageList(languages: [])
         list.add(language)
         languageList = list
         lastLanguage = language
+    }
 
+    /// Shows the closing confirmation, then hands off to the main app.
+    private func finishOnboarding(language: String, mode: FinishMode) {
+        finishLanguage = language
         customFieldFocused = false
-        // Show a brief confirmation, then hand off to the main app.
-        withAnimation(.smooth) { isFinishing = true }
+        withAnimation(.smooth) { finish = mode }
         Task {
             try? await Task.sleep(for: .seconds(1.1))
             withAnimation(.snappy) { hasOnboarded = true }

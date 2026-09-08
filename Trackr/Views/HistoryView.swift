@@ -8,19 +8,17 @@
 import SwiftUI
 import SwiftData
 
-/// Full history of sessions grouped by day, with language/activity filters and editing.
+/// Full history of sessions grouped by day, with an activity filter and editing.
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \StudySession.startDate, order: .reverse) private var allSessions: [StudySession]
 
-    @State private var languageFilter: String?
     @State private var kindFilter: ActivityKind?
     @State private var editingSession: StudySession?
 
     private var filteredSessions: [StudySession] {
         allSessions.filter { session in
-            (languageFilter == nil || session.language == languageFilter)
-                && (kindFilter == nil || session.kind == kindFilter)
+            kindFilter == nil || session.kind == kindFilter
         }
     }
 
@@ -32,10 +30,6 @@ struct HistoryView: View {
         return groups
             .map { (day: $0.key, sessions: $0.value) }
             .sorted { $0.day > $1.day }
-    }
-
-    private var availableLanguages: [String] {
-        Array(Set(allSessions.map(\.language))).sorted()
     }
 
     var body: some View {
@@ -86,14 +80,9 @@ struct HistoryView: View {
 
     private var filterMenu: some View {
         Menu {
-            Picker("Language", selection: $languageFilter) {
-                Text("All Languages").tag(String?.none)
-                ForEach(availableLanguages, id: \.self) { language in
-                    Text(language).tag(String?.some(language))
-                }
-            }
             Picker("Activity", selection: $kindFilter) {
-                Text("All Activities").tag(ActivityKind?.none)
+                Label("All Activities", systemImage: "square.grid.2x2")
+                    .tag(ActivityKind?.none)
                 ForEach(ActivityKind.allCases) { kind in
                     Label(kind.displayName, systemImage: kind.systemImage)
                         .tag(ActivityKind?.some(kind))
@@ -105,7 +94,7 @@ struct HistoryView: View {
     }
 
     private var isFiltering: Bool {
-        languageFilter != nil || kindFilter != nil
+        kindFilter != nil
     }
 }
 

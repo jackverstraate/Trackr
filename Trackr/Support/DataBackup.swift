@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 
 /// A single session as stored in a backup file.
@@ -28,13 +29,25 @@ struct BackupFile: Codable {
     var languages: [String]
     var dailyGoalMinutes: Int
     var sessions: [SessionBackup]
+    /// The language being learned when the backup was made. Optional so older
+    /// backups still decode; restore falls back to `languages` when it's absent.
+    var currentLanguage: String?
+}
+
+/// The outcome of restoring a backup into the model context.
+struct RestoreResult {
+    let added: Int
+    let skipped: Int
+    /// The language to select after restoring, if one could be determined.
+    let language: String?
+    let dailyGoalMinutes: Int
 }
 
 /// Encodes and decodes the app's data to/from a portable JSON backup.
 enum DataBackup {
     static let currentVersion = 1
 
-    static func encode(sessions: [StudySession], languages: [String], goalMinutes: Int) throws -> Data {
+    static func encode(sessions: [StudySession], languages: [String], goalMinutes: Int, currentLanguage: String) throws -> Data {
         let file = BackupFile(
             version: currentVersion,
             exportedAt: .now,
@@ -50,7 +63,8 @@ enum DataBackup {
                     note: $0.note,
                     immersionStyle: $0.immersionStyleRaw.isEmpty ? nil : $0.immersionStyleRaw
                 )
-            }
+            },
+            currentLanguage: currentLanguage
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -62,6 +76,35 @@ enum DataBackup {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(BackupFile.self, from: data)
+    }
+
+    /// Decodes a backup and inserts any sessions not already present (deduped by id).
+    /// Returns what was added plus the language and goal to apply.
+    static func restore(_ data: Data, into context: ModelContext, existingIDs: Set<UUID>) throws -> RestoreResult {
+        let backup = try decode(data)
+        var added = 0
+        for session in backup.sessions where !existingIDs.contains(session.id) {
+            context.insert(
+                StudySession(
+                    id: session.id,
+                    kind: ActivityKind(rawValue: session.kind) ?? .immersion,
+                    language: session.language,
+                    startDate: session.startDate,
+                    duration: session.duration,
+                    note: session.note,
+                    immersionStyle: session.immersionStyle.flatMap(ImmersionStyle.init(rawValue:))
+                )
+            )
+            added += 1
+        }
+        // Prefer the stored current language; fall back to the first known language.
+        let language = backup.currentLanguage ?? backup.languages.first
+        return RestoreResult(
+            added: added,
+            skipped: backup.sessions.count - added,
+            language: language,
+            dailyGoalMinutes: backup.dailyGoalMinutes
+        )
     }
 }
 
