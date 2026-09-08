@@ -45,7 +45,7 @@ struct SessionRow: View {
     }
 
     private var secondaryLine: String {
-        var parts = [session.language]
+        var parts: [String] = []
         if !session.note.isEmpty {
             parts.append(session.note)
         }

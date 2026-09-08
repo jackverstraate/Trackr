@@ -12,6 +12,7 @@ enum SettingsKey {
     static let knownLanguages = "knownLanguages"
     static let lastLanguage = "lastLanguage"
     static let dailyGoalMinutes = "dailyGoalMinutes"
+    static let hasOnboarded = "hasOnboarded"
 }
 
 /// A `RawRepresentable` wrapper so the list of known languages can live in `@AppStorage`.
@@ -40,6 +41,12 @@ struct LanguageList: RawRepresentable, Codable, Equatable {
 
     /// The default list seeded on first launch.
     static let seed = LanguageList(languages: ["Japanese"])
+
+    /// Common languages offered as quick picks in onboarding and settings.
+    static let presets = [
+        "Japanese", "Korean", "Chinese", "Spanish",
+        "French", "German", "Italian", "Russian",
+    ]
 
     /// Adds a trimmed language if it isn't already present (case-insensitive).
     mutating func add(_ language: String) {

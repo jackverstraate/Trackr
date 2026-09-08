@@ -15,6 +15,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage(SettingsKey.knownLanguages) private var languageList = LanguageList.seed
+    @AppStorage(SettingsKey.lastLanguage) private var language = "Japanese"
     @AppStorage(SettingsKey.dailyGoalMinutes) private var goalMinutes = 0
 
     @Query private var allSessions: [StudySession]
@@ -23,10 +24,39 @@ struct SettingsView: View {
     @State private var isImporting = false
     @State private var exportDocument: BackupDocument?
     @State private var message: String?
+    @State private var customLanguage = ""
+    @FocusState private var customFieldFocused: Bool
+
+    /// Preset languages plus the current one, so the picker always has a matching tag.
+    private var languageOptions: [String] {
+        var options = LanguageList.presets
+        if !options.contains(language) { options.append(language) }
+        return options
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker("Learning", selection: $language) {
+                        ForEach(languageOptions, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
+                    HStack {
+                        TextField("Another language", text: $customLanguage)
+                            .autocorrectionDisabled()
+                            .focused($customFieldFocused)
+                            .onSubmit(setCustomLanguage)
+                        Button("Set", action: setCustomLanguage)
+                            .disabled(customLanguage.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } header: {
+                    Text("Language")
+                } footer: {
+                    Text("Sessions you log are tracked under this language. Changing it doesn't alter sessions you've already logged.")
+                }
+
                 Section {
                     Button {
                         prepareExport()
@@ -54,6 +84,11 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: language) { _, newValue in
+                var list = languageList
+                list.add(newValue)
+                languageList = list
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
@@ -90,12 +125,21 @@ struct SettingsView: View {
         "Trackr-Backup-\(Date.now.formatted(.iso8601.year().month().day()))"
     }
 
+    private func setCustomLanguage() {
+        let trimmed = customLanguage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        language = trimmed
+        customLanguage = ""
+        customFieldFocused = false
+    }
+
     private func prepareExport() {
         do {
             let data = try DataBackup.encode(
                 sessions: allSessions,
                 languages: languageList.languages,
-                goalMinutes: goalMinutes
+                goalMinutes: goalMinutes,
+                currentLanguage: language
             )
             exportDocument = BackupDocument(data: data)
             isExporting = true
@@ -111,33 +155,17 @@ struct SettingsView: View {
             defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
 
             let data = try Data(contentsOf: url)
-            let backup = try DataBackup.decode(data)
+            let outcome = try DataBackup.restore(
+                data,
+                into: modelContext,
+                existingIDs: Set(allSessions.map(\.id))
+            )
 
-            let existingIDs = Set(allSessions.map(\.id))
-            var added = 0
-            for session in backup.sessions where !existingIDs.contains(session.id) {
-                modelContext.insert(
-                    StudySession(
-                        id: session.id,
-                        kind: ActivityKind(rawValue: session.kind) ?? .immersion,
-                        language: session.language,
-                        startDate: session.startDate,
-                        duration: session.duration,
-                        note: session.note,
-                        immersionStyle: session.immersionStyle.flatMap(ImmersionStyle.init(rawValue:))
-                    )
-                )
-                added += 1
-            }
+            if let restoredLanguage = outcome.language { language = restoredLanguage }
+            if goalMinutes == 0 { goalMinutes = outcome.dailyGoalMinutes }
 
-            var list = languageList
-            backup.languages.forEach { list.add($0) }
-            languageList = list
-            if goalMinutes == 0 { goalMinutes = backup.dailyGoalMinutes }
-
-            let skipped = backup.sessions.count - added
-            message = "Imported \(added) new session(s)."
-                + (skipped > 0 ? " \(skipped) already existed." : "")
+            message = "Imported \(outcome.added) new session(s)."
+                + (outcome.skipped > 0 ? " \(outcome.skipped) already existed." : "")
         } catch {
             message = "Import failed: \(error.localizedDescription)"
         }

@@ -7,12 +7,11 @@
 
 import SwiftUI
 
-/// The live stopwatch on the Today screen: activity + language selection, a running
-/// readout, and start/pause/save controls. This is the app's functional layer, so it's
-/// the one place that adopts Liquid Glass (per Apple's HIG, kept off the content layer).
+/// The live stopwatch on the Today screen: activity selection, a running readout, and
+/// start/pause/save controls. This is the app's functional layer, so it's the one place
+/// that adopts Liquid Glass (per Apple's HIG, kept off the content layer).
 struct TimerControlView: View {
     @Environment(StudyTimer.self) private var timer
-    let languages: [String]
     /// Called when the user saves the timed session. The caller reads the timer's
     /// elapsed time and selection to build the `StudySession`, then resets the timer.
     var onSave: () -> Void
@@ -39,18 +38,11 @@ struct TimerControlView: View {
                 .disabled(timer.isActive)
             }
 
-            Menu {
-                ForEach(languages, id: \.self) { language in
-                    Button(language) { timer.selectedLanguage = language }
-                }
-            } label: {
-                Label(
-                    timer.selectedLanguage.isEmpty ? "Select language" : timer.selectedLanguage,
-                    systemImage: "globe"
-                )
-                .font(.subheadline.weight(.medium))
+            if !timer.selectedLanguage.isEmpty {
+                Label(timer.selectedLanguage, systemImage: "globe")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
-            .disabled(timer.isActive)
 
             GlassEffectContainer(spacing: 20) {
                 VStack(spacing: 20) {

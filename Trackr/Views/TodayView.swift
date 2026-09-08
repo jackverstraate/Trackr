@@ -14,8 +14,7 @@ struct TodayView: View {
     @Environment(StudyTimer.self) private var timer
     @Environment(\.scenePhase) private var scenePhase
 
-    @AppStorage(SettingsKey.knownLanguages) private var languageList = LanguageList.seed
-    @AppStorage(SettingsKey.lastLanguage) private var lastLanguage = "Japanese"
+    @AppStorage(SettingsKey.lastLanguage) private var language = "Japanese"
     @AppStorage(SettingsKey.dailyGoalMinutes) private var goalMinutes = 0
 
     @Query(sort: \StudySession.startDate, order: .reverse) private var allSessions: [StudySession]
@@ -37,7 +36,7 @@ struct TodayView: View {
                     GoalRingView(secondsToday: StudyStats.total(todaySessions), goalMinutes: goalMinutes)
                         .padding(.top, 8)
 
-                    TimerControlView(languages: languageList.languages, onSave: saveTimedSession)
+                    TimerControlView(onSave: saveTimedSession)
 
                     sessionsSection
                 }
@@ -114,10 +113,7 @@ struct TodayView: View {
     }
 
     private func seedTimerLanguage() {
-        guard timer.selectedLanguage.isEmpty else { return }
-        timer.selectedLanguage = languageList.languages.contains(lastLanguage)
-            ? lastLanguage
-            : (languageList.languages.first ?? "")
+        timer.selectedLanguage = language
     }
 
     private func saveTimedSession() {
@@ -128,13 +124,12 @@ struct TodayView: View {
         }
         let session = StudySession(
             kind: timer.selectedKind,
-            language: timer.selectedLanguage,
+            language: language,
             startDate: Date.now.addingTimeInterval(-elapsed),
             duration: elapsed,
             immersionStyle: timer.selectedKind == .immersion ? timer.selectedImmersionStyle : nil
         )
         modelContext.insert(session)
-        lastLanguage = timer.selectedLanguage
         withAnimation(.snappy) { timer.reset() }
     }
 }
