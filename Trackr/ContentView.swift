@@ -8,8 +8,25 @@
 import SwiftUI
 import SwiftData
 
-/// Root tab bar. The system tab bar adopts Liquid Glass automatically on iOS 26.
+/// Root view: shows onboarding on first launch, then the main tab bar.
 struct ContentView: View {
+    @AppStorage(SettingsKey.hasOnboarded) private var hasOnboarded = false
+
+    var body: some View {
+        ZStack {
+            if hasOnboarded {
+                MainTabView()
+                    .transition(.opacity)
+            } else {
+                OnboardingView()
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
+/// The main tab bar. The system tab bar adopts Liquid Glass automatically on iOS 26.
+struct MainTabView: View {
     var body: some View {
         TabView {
             Tab("Today", systemImage: "timer") {

@@ -12,6 +12,7 @@ enum SettingsKey {
     static let knownLanguages = "knownLanguages"
     static let lastLanguage = "lastLanguage"
     static let dailyGoalMinutes = "dailyGoalMinutes"
+    static let hasOnboarded = "hasOnboarded"
 }
 
 /// A `RawRepresentable` wrapper so the list of known languages can live in `@AppStorage`.

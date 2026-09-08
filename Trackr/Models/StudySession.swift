@@ -21,7 +21,8 @@ final class StudySession {
     /// Optional material name or free-form note, e.g. "Genki 1 – Ch. 3".
     var note: String
     /// Raw value of `ImmersionStyle` for immersion sessions; empty otherwise.
-    var immersionStyleRaw: String
+    /// Has a default so SwiftData can lightweight-migrate stores created before this property existed.
+    var immersionStyleRaw: String = ""
 
     init(
         id: UUID = UUID(),
