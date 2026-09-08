@@ -59,7 +59,7 @@ struct TimerControlView: View {
                             .font(.system(size: 56, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .contentTransition(.numericText())
-                            .foregroundStyle(timer.isRunning ? timer.selectedKind.tint : .primary)
+                            .foregroundStyle(timer.isRunning ? tint : .primary)
                             .padding(.horizontal, 28)
                             .padding(.vertical, 16)
                             .glassEffect(in: .rect(cornerRadius: 28))
@@ -75,7 +75,7 @@ struct TimerControlView: View {
                                 .padding(.vertical, 6)
                         }
                         .buttonStyle(.glassProminent)
-                        .tint(timer.selectedKind.tint)
+                        .tint(tint)
                         .disabled(timer.selectedLanguage.isEmpty)
 
                         if timer.isActive {
@@ -93,6 +93,18 @@ struct TimerControlView: View {
                 }
             }
         }
+    }
+
+    /// Accent color for the timer and start button. Immersion reflects its sub-type
+    /// (Active vs. Passive); other activities use their own tint.
+    private var tint: Color {
+        if timer.selectedKind == .immersion {
+            let category: StudyCategory = timer.selectedImmersionStyle == .active
+                ? .activeImmersion
+                : .passiveImmersion
+            return category.tint
+        }
+        return timer.selectedKind.tint
     }
 
     private var primaryTitle: String {
