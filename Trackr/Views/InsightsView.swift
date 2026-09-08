@@ -223,8 +223,3 @@ struct InsightsView: View {
         .padding(.vertical, 2)
     }
 }
-
-#Preview {
-    InsightsView()
-        .modelContainer(SampleData.container)
-}

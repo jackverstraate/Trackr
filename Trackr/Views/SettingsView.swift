@@ -171,8 +171,3 @@ struct SettingsView: View {
         }
     }
 }
-
-#Preview {
-    SettingsView()
-        .modelContainer(SampleData.container)
-}

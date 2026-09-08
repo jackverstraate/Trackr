@@ -97,8 +97,3 @@ struct HistoryView: View {
         kindFilter != nil
     }
 }
-
-#Preview {
-    HistoryView()
-        .modelContainer(SampleData.container)
-}
