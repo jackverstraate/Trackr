@@ -139,7 +139,7 @@ struct InsightsView: View {
         Chart(chartTotals) { item in
             BarMark(
                 x: .value("Period", item.day, unit: range.isMonthly ? .month : .day),
-                y: .value("Minutes", item.total / 60)
+                y: .value("Hours", item.total / 3600)
             )
             .foregroundStyle(by: .value("Activity", item.category.shortName))
         }
@@ -153,6 +153,16 @@ struct InsightsView: View {
             AxisMarks(values: .stride(by: xAxisUnit, count: xAxisStride)) { _ in
                 AxisGridLine()
                 AxisValueLabel(format: xAxisFormat)
+            }
+        }
+        .chartYAxis {
+            AxisMarks { value in
+                AxisGridLine()
+                AxisValueLabel {
+                    if let hours = value.as(Double.self) {
+                        Text("\(Int(hours.rounded()))h")
+                    }
+                }
             }
         }
         .chartLegend(position: .bottom)
@@ -187,10 +197,14 @@ struct InsightsView: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value)
                     .font(.system(.title, design: .rounded, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 Text(unit)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()

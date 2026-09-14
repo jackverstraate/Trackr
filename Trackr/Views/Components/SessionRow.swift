@@ -15,7 +15,7 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ActivityBadge(kind: session.kind)
+            ActivityBadge(kind: session.kind, tint: StudyCategory.of(session).tint)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

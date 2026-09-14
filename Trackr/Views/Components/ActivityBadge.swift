@@ -11,13 +11,17 @@ import SwiftUI
 struct ActivityBadge: View {
     let kind: ActivityKind
     var size: CGFloat = 40
+    /// Overrides `kind.tint`, e.g. to distinguish Active vs. Passive immersion.
+    var tint: Color? = nil
+
+    private var resolvedTint: Color { tint ?? kind.tint }
 
     var body: some View {
         Image(systemName: kind.systemImage)
             .font(.system(size: size * 0.44, weight: .semibold))
-            .foregroundStyle(kind.tint)
+            .foregroundStyle(resolvedTint)
             .frame(width: size, height: size)
-            .background(kind.tint.opacity(0.15), in: .rect(cornerRadius: size * 0.3))
+            .background(resolvedTint.opacity(0.15), in: .rect(cornerRadius: size * 0.3))
             .accessibilityLabel(kind.displayName)
     }
 }
