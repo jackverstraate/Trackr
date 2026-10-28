@@ -50,6 +50,8 @@ struct TimerControlView: View {
                         Text(DurationFormat.clock(timer.elapsed(asOf: context.date)))
                             .font(.system(size: 56, weight: .bold, design: .rounded))
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                             .contentTransition(.numericText())
                             .foregroundStyle(timer.isRunning ? tint : .primary)
                             .padding(.horizontal, 28)

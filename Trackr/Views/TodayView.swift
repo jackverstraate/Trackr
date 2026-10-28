@@ -13,6 +13,7 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(StudyTimer.self) private var timer
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @AppStorage(SettingsKey.lastLanguage) private var language = "Japanese"
     @AppStorage(SettingsKey.dailyGoalMinutes) private var goalMinutes = 0
@@ -31,16 +32,29 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    GoalRingView(secondsToday: StudyStats.total(todaySessions), goalMinutes: goalMinutes)
-                        .padding(.top, 8)
+            GeometryReader { geometry in
+                // Use the current content width, including during folding and Split View.
+                let usesColumns = geometry.size.width >= 760 && !dynamicTypeSize.isAccessibilitySize
+                let layout = usesColumns
+                    ? AnyLayout(HStackLayout(alignment: .top, spacing: 32))
+                    : AnyLayout(VStackLayout(spacing: 28))
 
-                    TimerControlView(onSave: saveTimedSession)
+                ScrollView {
+                    layout {
+                        VStack(spacing: 28) {
+                            GoalRingView(secondsToday: StudyStats.total(todaySessions), goalMinutes: goalMinutes)
+                                .padding(.top, 8)
+                            TimerControlView(onSave: saveTimedSession)
+                        }
+                        .frame(maxWidth: .infinity)
 
-                    sessionsSection
+                        sessionsSection
+                            .frame(maxWidth: .infinity)
+                    }
+                    .frame(maxWidth: usesColumns ? 1100 : 600)
+                    .padding()
+                    .frame(maxWidth: .infinity)
                 }
-                .padding()
             }
             .navigationTitle("Today")
             .toolbar {

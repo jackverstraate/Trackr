@@ -68,7 +68,9 @@ struct OnboardingView: View {
                             }
                     }
                 }
+                .frame(maxWidth: 600)
                 .padding()
+                .frame(maxWidth: .infinity)
             }
 
             VStack(spacing: 12) {
@@ -80,6 +82,7 @@ struct OnboardingView: View {
                         .font(.subheadline.weight(.medium))
                 }
             }
+            .frame(maxWidth: 600)
             .padding()
         }
         .overlay {

@@ -34,6 +34,21 @@ Built with SwiftUI, SwiftData, and Swift Charts, and designed around the iOS 26 
 2. Open `Trackr.xcodeproj` in Xcode.
 3. Select the **Trackr** scheme and a simulator (or your device), then press **⌘R** to build and run.
 
+### iPhone Duo readiness
+
+Build with **Xcode 27.1 or later (iOS 27.1 SDK)** for native Duo display and system bar adaptation. The SDK requirement is independent of the app's minimum supported iOS version.
+
+Today responds to the current content width: wide windows show progress and timer beside today's sessions; narrow windows and accessibility text sizes use a single column. `AnyLayout` retains view identity while resizing, and the shared timer remains outside the layout. iPhone supports portrait and both landscape orientations. Onboarding keeps its content at a comfortable reading width.
+
+Before release, use the iPhone Duo simulator or Device Hub to check:
+
+- Fold and unfold while timing, paused, and editing a session; confirm elapsed time and unsaved edits survive.
+- Rotate on both displays and resize Split View; check system side bars, safe areas, and keyboard presentation.
+- Check Today, History, Insights, onboarding, settings, and session sheets at narrow widths and accessibility text sizes.
+- Save, edit, and delete sessions after resizing, and verify chart and history content remain reachable.
+
+The simulator build was verified with Xcode 27.1. Duo pose and visual checks still require a Duo simulator runtime; the installed runtime at implementation time was iOS 27.0.
+
 ### Running on a physical device
 
 Select the **Trackr** target → **Signing & Capabilities** → enable *Automatically manage signing* and choose your team (a free Apple ID works). Then pick your iPhone as the run destination and press **⌘R**. On the first launch, trust the developer certificate under **Settings → General → VPN & Device Management** on the device. Apps signed with a free Apple ID expire after 7 days and must be re-deployed from Xcode.
